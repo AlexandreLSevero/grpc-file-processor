@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package file_processor;
+
+message Chunk {
+  bytes content = 1;
+}
+
+message ResponseMetadata {
+  string file_name = 1;
+  string status_message = 2;
+  bool success = 3;
+}
+
+message ResponseChunk {
+  oneof payload {
+    ResponseMetadata metadata = 1;
+    Chunk chunk = 2;
+  }
+}
+
+// CompressPDF
+message CompressMetadata {
+  string file_name = 1;
+}
+
+message CompressRequestChunk {
+  oneof payload {
+    CompressMetadata metadata = 1;
+    Chunk chunk = 2;
+  }
+}
+
+// ConvertToTXT
+message ConvertToTXTMetadata {
+  string file_name = 1;
+}
+
+message ConvertToTXTRequestChunk {
+  oneof payload {
+    ConvertToTXTMetadata metadata = 1;
+    Chunk chunk = 2;
+  }
+}
+
+// ConvertImageFormat
+message ConvertImageFormatMetadata {
+  string file_name = 1;
+  string output_format = 1;
+}
+
+message ConvertImageFormatRequestChunk {
+  oneof payload {
+    ConvertImageFormatMetadata metadata = 1;
+    Chunk chunk = 2;
+  }
+}
+
+// ResizeImage
+message ResizeImageMetadata {
+  string file_name = 1;
+  int32 width = 1;
+  int32 height = 2;
+}
+
+message ResizeImageRequestChunk {
+  oneof payload {
+    ResizeImageMetadata metadata = 1;
+    Chunk chunk = 2;
+  }
+}
+
+service FileProcessorService {
+  rpc CompressPDF(stream CompressRequestChunk) returns (stream ResponseChunk);
+  rpc ConvertToTXT(stream ConvertToTXTRequestChunk) returns (stream ResponseChunk);
+  rpc ConvertImageFormat(stream ConvertImageFormatRequestChunk) returns (stream ResponseChunk);
+  rpc ResizeImage(stream ResizeImageRequestChunk) returns (stream ResponseChunk);
+}
