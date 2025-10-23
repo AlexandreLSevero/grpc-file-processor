@@ -3,42 +3,55 @@ import file_processor_pb2
 import file_processor_pb2_grpc
 import os
 
+# Função para chamar o serviço CompressPDF
 def compress_pdf(stub, input_path):
+    # Gerador para enviar o arquivo em chunks
     def request_iterator():
-        file_name = os.path.basename(input_path)
-        yield file_processor_pb2.CompressRequestChunk(metadata=file_processor_pb2.CompressMetadata(file_name=file_name))
+        file_name = os.path.basename(input_path) # Extrai o nome do arquivo
+        # Envia metadados com o nome do arquivo
+        yield file_processor_pb2.CompressRequestChunk(
+            metadata=file_processor_pb2.CompressMetadata(file_name=file_name))
+        # Envia o arquivo em chunks de 1024 bytes
         with open(input_path, 'rb') as f:
             while True:
                 chunk = f.read(1024)
                 if not chunk:
                     break
-                yield file_processor_pb2.CompressRequestChunk(chunk=file_processor_pb2.Chunk(content=chunk))
+                yield file_processor_pb2.CompressRequestChunk(
+                    chunk=file_processor_pb2.Chunk(content=chunk))
 
+    # Chama o serviço CompressPDF
     response_stream = stub.CompressPDF(request_iterator())
     output_path = "compressed_" + os.path.basename(input_path)
+    # Salva a resposta em um arquivo
     with open(output_path, 'wb') as output_file:
         success = False
         for resp in response_stream:
             if resp.HasField('metadata'):
+                # Processa metadados
                 success = resp.metadata.success
                 print(resp.metadata.status_message)
                 if not success:
                     break
             elif resp.HasField('chunk'):
+                # Escreve o chunk no arquivo de saída
                 output_file.write(resp.chunk.content)
     if success:
         print(f"Salvo em: {output_path}")
 
+# Função para chamar o serviço ConvertToTXT
 def convert_to_txt(stub, input_path):
     def request_iterator():
         file_name = os.path.basename(input_path)
-        yield file_processor_pb2.ConvertToTXTRequestChunk(metadata=file_processor_pb2.ConvertToTXTMetadata(file_name=file_name))
+        yield file_processor_pb2.ConvertToTXTRequestChunk(
+            metadata=file_processor_pb2.ConvertToTXTMetadata(file_name=file_name))
         with open(input_path, 'rb') as f:
             while True:
                 chunk = f.read(1024)
                 if not chunk:
                     break
-                yield file_processor_pb2.ConvertToTXTRequestChunk(chunk=file_processor_pb2.Chunk(content=chunk))
+                yield file_processor_pb2.ConvertToTXTRequestChunk(
+                    chunk=file_processor_pb2.Chunk(content=chunk))
 
     response_stream = stub.ConvertToTXT(request_iterator())
     output_path = os.path.basename(input_path) + ".txt"
@@ -55,17 +68,21 @@ def convert_to_txt(stub, input_path):
     if success:
         print(f"Salvo em: {output_path}")
 
+# Função para chamar o serviço ConvertImageFormat
 def convert_image_format(stub, input_path, output_format):
     def request_iterator():
         file_name = os.path.basename(input_path)
+        # Envia metadados com nome e formato de saída
         yield file_processor_pb2.ConvertImageFormatRequestChunk(
-            metadata=file_processor_pb2.ConvertImageFormatMetadata(file_name=file_name, output_format=output_format))
+            metadata=file_processor_pb2.ConvertImageFormatMetadata(
+                file_name=file_name, output_format=output_format))
         with open(input_path, 'rb') as f:
             while True:
                 chunk = f.read(1024)
                 if not chunk:
                     break
-                yield file_processor_pb2.ConvertImageFormatRequestChunk(chunk=file_processor_pb2.Chunk(content=chunk))
+                yield file_processor_pb2.ConvertImageFormatRequestChunk(
+                    chunk=file_processor_pb2.Chunk(content=chunk))
 
     response_stream = stub.ConvertImageFormat(request_iterator())
     output_path = "converted." + output_format
@@ -82,17 +99,21 @@ def convert_image_format(stub, input_path, output_format):
     if success:
         print(f"Salvo em: {output_path}")
 
+# Função para chamar o serviço ResizeImage
 def resize_image(stub, input_path, width, height):
     def request_iterator():
         file_name = os.path.basename(input_path)
+        # Envia metadados com nome, largura e altura
         yield file_processor_pb2.ResizeImageRequestChunk(
-            metadata=file_processor_pb2.ResizeImageMetadata(file_name=file_name, width=width, height=height))
+            metadata=file_processor_pb2.ResizeImageMetadata(
+                file_name=file_name, width=width, height=height))
         with open(input_path, 'rb') as f:
             while True:
                 chunk = f.read(1024)
                 if not chunk:
                     break
-                yield file_processor_pb2.ResizeImageRequestChunk(chunk=file_processor_pb2.Chunk(content=chunk))
+                yield file_processor_pb2.ResizeImageRequestChunk(
+                    chunk=file_processor_pb2.Chunk(content=chunk))
 
     response_stream = stub.ResizeImage(request_iterator())
     output_path = "resized_" + os.path.basename(input_path)
@@ -109,9 +130,12 @@ def resize_image(stub, input_path, width, height):
     if success:
         print(f"Salvo em: {output_path}")
 
+# Função principal do cliente
 def run_client():
+    # Cria um canal gRPC para conectar ao servidor
     with grpc.insecure_channel('localhost:50051') as channel:
         stub = file_processor_pb2_grpc.FileProcessorServiceStub(channel)
+        # Menu interativo
         service = input("Escolha o serviço (compress_pdf, convert_to_txt, convert_image_format, resize_image): ")
         input_path = input("Caminho do arquivo de entrada: ")
 
@@ -129,5 +153,6 @@ def run_client():
         else:
             print("Serviço inválido.")
 
+# Ponto de entrada do programa
 if __name__ == '__main__':
     run_client()
